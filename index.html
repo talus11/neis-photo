@@ -4,45 +4,194 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>나이스 사진 일괄 변환기</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
     <style>
-        body { background-color: #f8f9fa; padding: 30px; }
-        .container { max-width: 800px; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        #drop-zone { border: 2px dashed #0d6efd; padding: 40px; text-align: center; cursor: pointer; border-radius: 10px; margin-bottom: 20px; }
-        .info-text { font-size: 0.9rem; color: #666; }
+        /* --- 애플 감성 테마 설정 --- */
+        :root {
+            --apple-bg: #F5F5F7;          /* 아주 연한 회색 배경 */
+            --apple-card-bg: #FFFFFF;     /* 메인 카드 백색 */
+            --apple-text: #1D1D1F;        /* 거의 검은색 텍스트 */
+            --apple-text-muted: #86868B;   /* 연한 회색 설명 텍스트 */
+            --apple-blue: #0071E3;        /* 애플 포인트 블루 */
+            --apple-blue-hover: #0056A1; /* 호버 시 약간 어두운 블루 */
+            --apple-border: #C7C7CC;      /* 테두리 색상 */
+            --apple-radius-lg: 18px;     /* 큰 둥글기 (카드) */
+            --apple-radius-md: 12px;     /* 중간 둥글기 (드롭존, 버튼) */
+            --apple-radius-sm: 8px;      /* 작은 둥글기 (입력창) */
+        }
+
+        /* --- 기본 스타일링 --- */
+        body { 
+            background-color: var(--apple-bg); 
+            color: var(--apple-text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 50px 20px;
+            -webkit-font-smoothing: antialiased; /* 글자 가독성 향상 */
+        }
+
+        /* --- 메인 컨테이너 (애플 카드 스타일) --- */
+        .apple-container { 
+            max-width: 700px; 
+            margin: 0 auto;
+            background: var(--apple-card-bg); 
+            padding: 40px; 
+            border-radius: var(--apple-radius-lg); 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.03); /* 아주 미세한 그림자 */
+            border: 1px solid rgba(0,0,0,0.05); /* 소프트한 경계선 */
+        }
+
+        h2 { 
+            text-align: center; 
+            font-weight: 700; 
+            font-size: 2.2rem;
+            margin-bottom: 5px;
+            letter-spacing: -0.5px; /* 글자 간격 살짝 좁힘 */
+        }
+        
+        .info-subtitle {
+            text-align: center;
+            color: var(--apple-text-muted);
+            font-size: 1rem;
+            margin-bottom: 40px;
+        }
+
+        .step-label {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--apple-text);
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .step-desc {
+            font-size: 0.9rem;
+            color: var(--apple-text-muted);
+            margin-top: -5px;
+            margin-bottom: 15px;
+        }
+
+        /* --- 입력창 및 텍스트에어리어 --- */
+        textarea, .form-control { 
+            width: 100%;
+            border-radius: var(--apple-radius-sm); 
+            border: 1px solid var(--apple-border); 
+            padding: 12px;
+            font-size: 1rem;
+            background-color: #FAFAFA;
+            box-sizing: border-radius; /* 패딩 포함 크기 조절 */
+            transition: all 0.2s ease;
+        }
+        textarea:focus, .form-control:focus {
+            border-color: var(--apple-blue);
+            box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15); /* 블루 포커스 효과 */
+            outline: none;
+            background-color: #FFFFFF;
+        }
+
+        /* --- 사진 드롭존 (점선 테두리) --- */
+        #drop-zone { 
+            border: 1px dashed var(--apple-border); 
+            padding: 50px 30px; 
+            text-align: center; 
+            cursor: pointer; 
+            border-radius: var(--apple-radius-md); 
+            margin-bottom: 30px; 
+            background-color: #FAFAFA;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        #drop-zone:hover {
+            border-color: var(--apple-blue);
+            background-color: rgba(0, 113, 227, 0.02);
+        }
+        #drop-zone p { margin: 0; color: var(--apple-text-muted); font-size: 0.95rem; }
+        #drop-zone strong { color: var(--apple-text); font-size: 1.1rem; display: block; margin-bottom: 5px;}
+
+        /* --- 메인 버튼 (SF Blue) --- */
+        .apple-btn-blue { 
+            display: block;
+            width: 100%;
+            background-color: var(--apple-blue); 
+            color: white; 
+            border: none;
+            border-radius: var(--apple-radius-md); 
+            padding: 16px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+        }
+        .apple-btn-blue:hover { 
+            background-color: var(--apple-blue-hover); 
+        }
+        .apple-btn-blue:active {
+            transform: scale(0.98); /* 클릭 시 살짝 작아지는 효과 */
+        }
+
+        /* --- 상태 메시지 --- */
+        #status { 
+            margin-top: 20px; 
+            text-align: center; 
+            font-weight: 600; 
+            color: var(--apple-blue); 
+            min-height: 1.5rem;
+        }
+
+        .mb-30 { margin-bottom: 30px; }
+        .d-none { display: none; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2 class="text-center mb-4">📸 나이스 사진 일괄 변환기</h2>
-    <p class="text-center info-text">200KB 용량 압축 + 파일명 자동 변경(성명(번호))</p>
+<div class="apple-container">
+    <h2>📸 나이스 사진 일괄 변환기</h2>
+    <p class="info-subtitle">200KB 용량 압축 + 파일명 자동 변경 (성명(번호))</p>
     
-    <div class="mb-4">
-        <label class="form-label"><strong>1. 학생 명단 입력</strong> (한 줄에 한 명씩, 예: 홍길동(1))</label>
-        <textarea id="nameList" class="form-control" rows="5" placeholder="나이스에서 복사한 명단을 붙여넣으세요.&#10;홍길동(1)&#10;이순신(2)"></textarea>
+    <div class="mb-30">
+        <label class="step-label">1단계. 학생 명단 입력</label>
+        <p class="step-desc">나이스 학급명단을 한 줄에 한 명씩 붙여넣으세요. (파일명이 됩니다)</p>
+        <textarea id="nameList" rows="6" placeholder="예)&#10;홍길동(1)&#10;이순신(2)"></textarea>
     </div>
 
-    <div id="drop-zone">
-        <strong>2. 사진 파일 선택 또는 드래그</strong>
-        <input type="file" id="fileInput" multiple accept="image/*" class="d-none">
-        <p class="mt-2 text-muted">입력한 명단 순서와 업로드하는 사진 순서가 같아야 합니다.</p>
+    <div class="mb-30">
+        <label class="step-label">2단계. 사진 파일 업로드</label>
+        <p class="step-desc">위 명단 순서와 동일한 순서로 사진들을 한꺼번에 올리세요.</p>
+        <div id="drop-zone">
+            <strong>사진 파일 선택 또는 드래그</strong>
+            <p id="file-count">아직 선택된 파일이 없습니다.</p>
+            <input type="file" id="fileInput" multiple accept="image/*" class="d-none">
+        </div>
     </div>
 
-    <button id="processBtn" class="btn btn-primary w-100 btn-lg">변환 및 압축파일 다운로드</button>
+    <button id="processBtn" class="apple-btn-blue">변환 및 압축파일(.zip) 다운로드</button>
     
-    <div id="status" class="mt-3 text-center fw-bold text-primary"></div>
+    <div id="status"></div>
 </div>
 
 <script>
+    /* --- 기존 기능 로직 (전과 동일함) --- */
     const dropZone = document.getElementById('drop-zone');
     const fileInput = document.getElementById('fileInput');
     const processBtn = document.getElementById('processBtn');
     const nameListInput = document.getElementById('nameList');
     const status = document.getElementById('status');
+    const fileCountText = document.getElementById('file-count');
 
     dropZone.onclick = () => fileInput.click();
+    
+    // 파일 선택 시 카운트 업데이트
+    fileInput.onchange = (e) => {
+        if (e.target.files.length > 0) {
+            fileCountText.innerText = `${e.target.files.length}개의 파일이 선택되었습니다.`;
+            fileCountText.style.color = '#0071E3'; // 포인트 블루로 변경
+        } else {
+            fileCountText.innerText = "아직 선택된 파일이 없습니다.";
+            fileCountText.style.color = '#86868B';
+        }
+    };
 
     processBtn.onclick = async () => {
         const files = fileInput.files;
@@ -72,7 +221,7 @@
         link.download = "nice_photos.zip";
         link.click();
         
-        status.innerText = "변환 완료! 압축파일이 다운로드되었습니다.";
+        status.innerText = "✓ 변환 완료! 압축파일이 다운로드되었습니다.";
     };
 
     function compressAndResize(file) {
@@ -85,14 +234,10 @@
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
-                    
-                    // 나이스 권장 비율 (예: 3:4 비율로 고정)
-                    canvas.width = 300;
+                    canvas.width = 300; // 나이스 비율 고정
                     canvas.height = 400;
                     ctx.drawImage(img, 0, 0, 300, 400);
-
-                    // 0.8 퀄리티로 JPEG 압축 (200KB 이하로 충분히 들어감)
-                    canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.8);
+                    canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.85); // 용량 넉넉하게 퀄리티 살짝 업
                 };
             };
         });
