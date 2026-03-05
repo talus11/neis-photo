@@ -1,0 +1,33 @@
+function compressImage(file, maxWidth = 800) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                // 나이스 규격에 맞게 적절한 크기 조절
+                const ctx = canvas.getContext('2d');
+                canvas.width = 300; // 증명사진 규격 비율
+                canvas.height = 400;
+                ctx.drawImage(img, 0, 0, 300, 400);
+                
+                // 200KB 이하를 목표로 퀄리티 조절 (0.7~0.8 권장)
+                canvas.toBlob((blob) => {
+                    resolve(blob);
+                }, 'image/jpeg', 0.8);
+            };
+        };
+    });
+}
+async function processFiles(files, nameList) {
+    const zip = new JSZip(); // JSZip 라이브러리 사용
+    for (let i = 0; i < files.length; i++) {
+        const compressedBlob = await compressImage(files[i]);
+        const newName = `${nameList[i]}.jpg`; 
+        zip.file(newName, compressedBlob);
+    }
+    const content = await zip.generateAsync({type:"blob"});
+    saveAs(content, "nice_photos.zip");
+}
